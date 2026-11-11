@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ollama + Antigravity Bridge</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-title">Ollama × Antigravity</div>
+        <div class="brand-sub">Local AI · Files · Tools</div>
+        <div class="status-row">
+          <span class="pill" id="ollamaStatus" title="Ollama connection status">Ollama: Checking…</span>
+          <span class="pill" id="bridgeStatus" title="Local Python bridge status">Bridge: Checking…</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-head">
+          <span>Conversations</span>
+          <button class="btn-sm" id="newChatBtn" title="Start a new chat">+ New</button>
+        </div>
+        <div class="chat-list" id="chatList"></div>
+      </div>
+
+      <div class="sidebar-section grow">
+        <div class="section-head">
+          <span>Workspace Files</span>
+          <div class="btn-group">
+            <button class="btn-sm" id="pickFolderBtn" title="Open a local folder in your browser">Folder</button>
+            <label class="btn-sm file-label" title="Pick files manually">
+              Files<input type="file" id="pickFilesInput" multiple hidden />
+            </label>
+          </div>
+        </div>
+        <div class="ws-path" id="wsPath">No folder selected</div>
+        <input type="search" id="fileFilter" class="input-sm" placeholder="Filter files…" />
+        <div class="file-list" id="fileList"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-head">
+          <span>Antigravity Bridge</span>
+          <button class="btn-sm" id="refreshBridgeBtn" title="Refresh bridge info">↻</button>
+        </div>
+        <div class="ag-info" id="agInfo">Start <code>python bridge_server.py</code> for local tools &amp; MCP inspection.</div>
+        <div class="tool-actions">
+          <button class="btn-xs" id="btnOllamaList">ollama list</button>
+          <button class="btn-xs" id="btnBuildScriptDesk">Build ScriptDesk</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-sm mobile-only" id="toggleSidebarBtn">☰</button>
+          <select id="modelSelect" class="select" title="Choose an Ollama model"></select>
+          <select id="presetSelect" class="select" title="System prompt preset">
+            <option value="dev">Antigravity Dev Helper</option>
+            <option value="scriptdesk">ScriptDesk Film Assistant</option>
+            <option value="general">General Local Assistant</option>
+          </select>
+          <label class="toggle-chip" title="Enable/disable model thinking (e.g. qwen3)">
+            <input type="checkbox" id="thinkToggle" />
+            <span>Think</span>
+          </label>
+        </div>
+        <div class="topbar-right">
+          <button class="btn-sm" id="exportMdBtn" title="Download chat as Markdown">Export .md</button>
+          <button class="btn-sm" id="settingsBtn" title="Connection &amp; CORS settings">Settings</button>
+        </div>
+      </header>
+
+      <div class="banner hidden" id="corsBanner">
+        <div>
+          <strong>Ollama blocked by browser CORS.</strong>
+          Run this once in PowerShell, then restart Ollama:
+          <code id="corsCmd">[Environment]::SetEnvironmentVariable("OLLAMA_ORIGINS", "*", "User")</code>
+        </div>
+        <button class="btn-sm" id="copyCorsBtn">Copy</button>
+      </div>
+
+      <div class="attachments-bar hidden" id="attachmentsBar"></div>
+
+      <section class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <h2>Ready for 100% Local AI</h2>
+          <p>
+            Talk to your local Ollama models (no API keys, no token limits), attach files from your
+            workspace, and inspect Antigravity skills &amp; MCP tools.
+          </p>
+          <div class="quick-prompts">
+            <button class="chip-btn" data-prompt="Summarize the attached workspace files and suggest next improvements.">Summarize attached files</button>
+            <button class="chip-btn" data-prompt="Write a clean MCP server tool in Python for my local project.">Create an MCP tool</button>
+            <button class="chip-btn" data-prompt="Break down a 2-page film scene into shot division, locations, cast, and props.">Test film breakdown</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="composer">
+        <textarea id="promptInput" rows="2" placeholder="Ask your local Ollama model… (Enter to send, Shift+Enter for newline)"></textarea>
+        <div class="composer-actions">
+          <button class="btn-primary" id="sendBtn">Send</button>
+          <button class="btn-danger hidden" id="stopBtn">Stop</button>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog" class="dialog">
+    <form method="dialog" class="dialog-body">
+      <div class="dialog-head">
+        <h3>Connection Settings</h3>
+        <button class="btn-sm" value="cancel">✕</button>
+      </div>
+      <label class="field">
+        <span>Ollama Base URL</span>
+        <input type="url" id="cfgOllamaUrl" placeholder="http://localhost:11434" />
+      </label>
+      <label class="field">
+        <span>Local Bridge URL</span>
+        <input type="url" id="cfgBridgeUrl" placeholder="http://127.0.0.1:8765" />
+      </label>
+      <label class="field-inline">
+        <input type="checkbox" id="cfgUseBridgeProxy" />
+        <span>Route Ollama through local bridge when available (bypasses CORS)</span>
+      </label>
+      <label class="field">
+        <span>Workspace Folder Path (for Local Bridge)</span>
+        <input type="text" id="cfgWorkspacePath" placeholder="C:\Users\MVMK\sd\SCRIPT.DESK-main" />
+      </label>
+      <label class="field">
+        <span>Temperature (<span id="tempVal">0.4</span>)</span>
+        <input type="range" id="cfgTemp" min="0" max="1" step="0.1" />
+      </label>
+      <div class="dialog-foot">
+        <button type="button" class="btn-sm" id="resetSettingsBtn">Reset defaults</button>
+        <button type="button" class="btn-primary" id="saveSettingsBtn">Save &amp; Reconnect</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

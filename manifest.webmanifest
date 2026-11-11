@@ -1,0 +1,9 @@
+{
+  "name": "Ollama + Antigravity Bridge",
+  "short_name": "OllamaBridge",
+  "description": "Local-first AI workspace connecting Ollama models, local files, and Antigravity tools.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117"
+}
